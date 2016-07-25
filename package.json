@@ -23,7 +23,12 @@
     "cover": "istanbul cover _mocha --report lcovonly",
     "coveralls": "npm run cover && istanbul-coveralls"
   },
-  "dependencies": {},
+  "dependencies": {
+    "graceful-fs": "^4.1.4",
+    "lodash.assign": "^4.1.0",
+    "through2": "^2.0.1",
+    "value-or-function": "^1.2.1"
+  },
   "devDependencies": {
     "eslint": "^1.10.3",
     "eslint-config-gulp": "^2.0.0",
