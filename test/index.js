@@ -1,211 +1,421 @@
 'use strict';
 
-require('mocha');
-var assert = require('assert');
-var File = require('vinyl');
 var path = require('path');
-var through = require('through2');
+var File = require('vinyl');
+var expect = require('expect');
+var miss = require('mississippi');
+require('mocha');
 
 var prepare = require('../');
-var dataWrap = function(fn) {
-  return function(data, enc, cb) {
-    fn(data);
-    cb();
-  };
-};
+
+var applyUmask = require('./utils/apply-umask');
+var testStreams = require('./utils/test-streams');
+var testConstants = require('./utils/test-constants');
+
+var to = miss.to;
+var from = miss.from;
+var pipe = miss.pipe;
+var concat = miss.concat;
+
+var count = testStreams.count;
+var rename = testStreams.rename;
+var includes = testStreams.includes;
+var slowCount = testStreams.slowCount;
+
+function noop(file, enc, next) {
+  next();
+}
+
+var outputRelative = testConstants.outputRelative;
+var inputBase = testConstants.inputBase;
+var outputBase = testConstants.outputBase;
+var inputPath = testConstants.inputPath;
+var outputPath = testConstants.outputPath;
+var outputRenamePath = testConstants.outputRenamePath;
+var inputDirpath = testConstants.inputDirpath;
+var contents = testConstants.contents;
 
 describe('vinyl-prepare', function() {
   it('should export an object', function(done) {
-    assert.equal(typeof prepare, 'object');
+    expect(typeof prepare).toEqual('object');
     done();
   });
 
   it('should export a write function', function(done) {
-    assert.equal(typeof prepare.write, 'function');
+    expect(typeof prepare.write).toEqual('function');
     done();
   });
 
-  it('should pass through writes with cwd', function(done) {
-    var inputPath = path.join(__dirname, './fixtures/test.coffee');
+  it('throws on invalid folder (empty)', function(done) {
+    var stream;
+    try {
+      stream = prepare.write();
+    } catch (err) {
+      expect(err).toExist();
+      expect(stream).toNotExist();
+      expect(err.message).toEqual('Invalid output folder');
+      done();
+    }
+  });
 
-    var expectedFile = new File({
-      base: __dirname,
-      cwd: __dirname,
+  it('throws on invalid folder (empty string)', function(done) {
+    var stream;
+    try {
+      stream = prepare.write('');
+    } catch (err) {
+      expect(err).toExist();
+      expect(stream).toNotExist();
+      expect(err.message).toEqual('Invalid output folder');
+      done();
+    }
+  });
+
+  it('use options.cwd as when a string', function(done) {
+    var file = new File({
+      base: inputBase,
       path: inputPath,
       contents: null,
     });
 
-    var buffered = [];
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+    }
 
-    var onEnd = function() {
-      assert.equal(buffered.length, 1);
-      assert.deepEqual(buffered[0], expectedFile);
-      done();
-    };
-
-    var stream = prepare.write('./out-fixtures/', { cwd: __dirname });
-
-    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
-    stream.pipe(bufferStream);
-    stream.write(expectedFile);
-    stream.end();
+    pipe([
+      from.obj([file]),
+      prepare.write(outputRelative, { cwd: __dirname }),
+      concat(assert),
+    ], done);
   });
 
-  it('should pass through writes with default cwd', function(done) {
-    var inputPath = path.join(__dirname, './fixtures/test.coffee');
-
-    var expectedFile = new File({
-      base: __dirname,
-      cwd: __dirname,
+  it('should use the default cwd', function(done) {
+    var file = new File({
+      base: inputBase,
       path: inputPath,
       contents: null,
     });
 
-    var buffered = [];
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(process.cwd(), 'cwd should not have changed');
+    }
 
-    var onEnd = function() {
-      assert.equal(buffered.length, 1);
-      assert.deepEqual(buffered[0], expectedFile);
-      done();
-    };
-
-    var stream = prepare.write(path.join(__dirname, './out-fixtures/'));
-
-    var bufferStream = through.obj(dataWrap(buffered.push.bind(buffered)), onEnd);
-    stream.pipe(bufferStream);
-    stream.write(expectedFile);
-    stream.end();
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase),
+      concat(assert),
+    ], done);
   });
 
-  it('should allow piping multiple dests in streaming mode', function(done) {
-    var inputPath1 = path.join(__dirname, './out-fixtures/multiple-first');
-    var inputPath2 = path.join(__dirname, './out-fixtures/multiple-second');
-    var inputBase = path.join(__dirname, './out-fixtures/');
-    var stream1 = prepare.write('./out-fixtures/', { cwd: __dirname });
-    var stream2 = prepare.write('./out-fixtures/', { cwd: __dirname });
-    var rename = through.obj(function(file, _, next) {
-      file.path = inputPath2;
-      this.push(file);
-      next();
-    });
-
-    stream1.on('data', function(file) {
-      assert.equal(file.path, inputPath1);
-    });
-
-    stream1.pipe(rename).pipe(stream2);
-    stream2.on('data', function(file) {
-      assert.equal(file.path, inputPath2);
-    }).once('end', done);
+  it('update file paths to the right folder with relative cwd', function(done) {
+    var cwd = path.relative(process.cwd(), __dirname);
 
     var file = new File({
       base: inputBase,
-      path: inputPath1,
-      cwd: __dirname,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].base).toEqual(outputBase, 'base should have changed');
+      expect(files[0].path).toEqual(outputPath, 'path should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputRelative, { cwd: cwd }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file paths to the right folder with cwd as a function', function(done) {
+    var cwd = function() {
+      return path.relative(process.cwd(), __dirname);
+    };
+
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].base).toEqual(outputBase, 'base should have changed');
+      expect(files[0].path).toEqual(outputPath, 'path should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputRelative, { cwd: cwd }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file paths to the right folder with function and relative cwd', function(done) {
+    var cwd = path.relative(process.cwd(), __dirname);
+
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function outputFn(f) {
+      expect(f).toExist();
+      expect(f).toExist(file);
+      return outputRelative;
+    }
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].base).toEqual(outputBase, 'base should have changed');
+      expect(files[0].path).toEqual(outputPath, 'path should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputFn, { cwd: cwd }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file stat modes with the mode specified in options', function(done) {
+    var expectedMode = applyUmask('777');
+
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].stat.mode).toEqual(expectedMode, 'stat.mode should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase, { cwd: __dirname, mode: expectedMode }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file stat modes with the mode specified in options as a function', function(done) {
+    var expectedMode = applyUmask('777');
+    var expectedModeFn = function() {
+      return expectedMode;
+    };
+
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].stat.mode).toEqual(expectedMode, 'stat.mode should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase, { cwd: __dirname, mode: expectedModeFn }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file.flag when overwrite is specified in options', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].flag).toEqual('w', 'flag should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase, { cwd: __dirname, overwrite: true }),
+      concat(assert),
+    ], done);
+  });
+
+  it('update file.flag when overwrite is specified in options as a function', function(done) {
+    var overwrite = function() {
+      return true;
+    };
+
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].cwd).toEqual(__dirname, 'cwd should have changed');
+      expect(files[0].flag).toEqual('w', 'flag should have changed');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase, { cwd: __dirname, mode: overwrite }),
+      concat(assert),
+    ], done);
+  });
+
+  it('allows piping multiple times in streaming mode', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
+    });
+
+    pipe([
+      from.obj([file]),
+      includes({ path: inputPath }),
+      prepare.write(outputBase),
+      rename(outputRenamePath),
+      includes({ path: outputRenamePath }),
+      prepare.write(outputBase),
+    ], done);
+  });
+
+  it('does not get clogged by highWaterMark', function(done) {
+    var expectedCount = 17;
+    var highwatermarkFiles = [];
+    for (var idx = 0; idx < expectedCount; idx++) {
+      var file = new File({
+        base: inputBase,
+        path: inputPath,
+        contents: new Buffer(contents),
+      });
+      highwatermarkFiles.push(file);
+    }
+
+    pipe([
+      from.obj(highwatermarkFiles),
+      count(expectedCount),
+      prepare.write(outputBase),
+      count(expectedCount),
+      to.obj(noop),
+    ], done);
+  });
+
+  it('allows backpressure when piped to another, slower stream', function(done) {
+    this.timeout(20000);
+
+    var expectedCount = 24;
+    var highwatermarkFiles = [];
+    for (var idx = 0; idx < expectedCount; idx++) {
+      var file = new File({
+        base: inputBase,
+        path: inputPath,
+        contents: new Buffer(contents),
+      });
+      highwatermarkFiles.push(file);
+    }
+
+    pipe([
+      from.obj(highwatermarkFiles),
+      count(expectedCount),
+      prepare.write(outputBase),
+      slowCount(expectedCount),
+    ], done);
+  });
+
+  it('respects readable listeners on destination stream', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputDirpath,
       contents: null,
     });
 
-    stream1.write(file);
-    stream1.end();
-  });
-
-  it('should emit finish event', function(done) {
-    var srcPath = path.join(__dirname, './fixtures/test.coffee');
-    var stream = prepare.write('./out-fixtures/', { cwd: __dirname });
-
-    stream.once('finish', function() {
-      done();
-    });
-
-    var file = new File({
-      path: srcPath,
-      cwd: __dirname,
-      contents: new Buffer('1234567890'),
-    });
-
-    stream.write(file);
-    stream.end();
-  });
-
-  it('should respect readable listeners on prepare stream', function(done) {
-    var srcPath = path.join(__dirname, './fixtures/test.coffee');
-    var srcStream = through.obj();
-    var prepareStream = prepare.write('./out-fixtures/', { cwd: __dirname });
-
-    srcStream
-      .pipe(prepareStream);
+    var prepareWriteStream = prepare.write(outputBase);
 
     var readables = 0;
-    prepareStream.on('readable', function() {
-      var data = prepareStream.read();
+    prepareWriteStream.on('readable', function() {
+      var data = prepareWriteStream.read();
 
       if (data != null) {
         readables++;
       }
     });
 
-    prepareStream.on('error', done);
+    function assert(err) {
+      expect(readables).toEqual(1);
+      done(err);
+    }
 
-    prepareStream.on('finish', function() {
-      assert.equal(readables, 1);
-      done();
-    });
-
-    var file = new File({
-      path: srcPath,
-      cwd: __dirname,
-      contents: null,
-    });
-    srcStream.write(file);
-    srcStream.end();
+    pipe([
+      from.obj([file]),
+      prepareWriteStream,
+    ], assert);
   });
 
-  it('should respect data listeners on prepare stream', function(done) {
-    var srcPath = path.join(__dirname, './fixtures/test.coffee');
-    var srcStream = through.obj();
-    var prepareStream = prepare.write('./out-fixtures/', { cwd: __dirname });
+  it('respects data listeners on destination stream', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputDirpath,
+      contents: null,
+    });
 
-    srcStream
-      .pipe(prepareStream);
+    var prepareWriteStream = prepare.write(outputBase);
 
     var datas = 0;
-    prepareStream.on('data', function() {
+    prepareWriteStream.on('data', function() {
       datas++;
     });
 
-    prepareStream.on('error', done);
+    function assert(err) {
+      expect(datas).toEqual(1);
+      done(err);
+    }
 
-    prepareStream.on('finish', function() {
-      assert.equal(datas, 1);
-      done();
-    });
-
-    var file = new File({
-      path: srcPath,
-      cwd: __dirname,
-      contents: null,
-    });
-    srcStream.write(file);
-    srcStream.end();
+    pipe([
+      from.obj([file]),
+      prepareWriteStream,
+    ], assert);
   });
 
-  it('should pass options to through2', function(done) {
-    var srcPath = path.join(__dirname, './fixtures/test.coffee');
-    var content = new Buffer('test');
-    var stream = prepare.write('./out-fixtures/', { cwd: __dirname, objectMode: false });
-
-    stream.on('error', function(err) {
-      assert.equal(err.message, 'Invalid non-string/buffer chunk');
-      done();
-    });
-
+  // TODO: need a better way to pass these options through
+  // Or maybe not at all since we fixed highWaterMark
+  it('passes options to through2', function(done) {
     var file = new File({
-      path: srcPath,
-      cwd: __dirname,
-      contents: content,
+      base: inputBase,
+      path: inputPath,
+      contents: new Buffer(contents),
     });
 
-    stream.write(file);
-    stream.end();
+    function assert(err) {
+      expect(err.message).toMatch(/Invalid non-string\/buffer chunk/);
+      done();
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase, { objectMode: false }),
+    ], assert);
   });
 });
