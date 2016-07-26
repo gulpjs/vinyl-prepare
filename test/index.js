@@ -70,7 +70,28 @@ describe('vinyl-prepare', function() {
     }
   });
 
-  it('use options.cwd as when a string', function(done) {
+  it('errors if outFolder function returns invalid value', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: null,
+    });
+
+    function assert(err) {
+      expect(err).toExist();
+      expect(err.message).toEqual('Invalid output folder');
+      done();
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(function() {
+        return '';
+      }),
+    ], assert);
+  });
+
+  it('update file cwd with cwd specified in options', function(done) {
     var file = new File({
       base: inputBase,
       path: inputPath,
