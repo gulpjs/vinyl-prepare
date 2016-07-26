@@ -58,7 +58,7 @@ function prepareWrite(outFolder, opt) {
     cb(null, file);
   }
 
-  return through.obj(normalize);
+  return through.obj(opt, normalize);
 }
 
 module.exports = {
