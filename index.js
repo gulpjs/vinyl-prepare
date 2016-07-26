@@ -21,6 +21,10 @@ function prepareWrite(outFolder, opt) {
     opt = {};
   }
 
+  if (!outFolder) {
+    throw new Error('Invalid output folder');
+  }
+
   function normalize(file, enc, cb) {
     var defaultMode = file.stat ? file.stat.mode : null;
 
