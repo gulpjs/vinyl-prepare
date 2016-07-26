@@ -43,10 +43,6 @@ function prepareWrite(outFolder, opt) {
       return cb(new Error('Invalid output folder'));
     }
     var basePath = path.resolve(cwd, outFolderPath);
-    if (!basePath) {
-      return cb(new Error('Invalid base option'));
-    }
-
     var writePath = path.resolve(basePath, file.relative);
 
     // Wire up new properties
