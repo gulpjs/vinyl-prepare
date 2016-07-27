@@ -5,12 +5,8 @@ var path = require('path');
 var fs = require('graceful-fs');
 var assign = require('lodash.assign');
 var through = require('through2');
+var defaultTo = require('lodash.defaultto');
 var valueOrFunction = require('value-or-function');
-
-function defaultValue(defVal, value) {
-  // Double equal to support null & undefined
-  return value == null ? defVal : value;
-}
 
 var boolean = valueOrFunction.boolean;
 var number = valueOrFunction.number;
@@ -29,9 +25,9 @@ function prepareWrite(outFolder, opt) {
     var defaultMode = file.stat ? file.stat.mode : null;
 
     var options = assign({}, opt, {
-      cwd: defaultValue(process.cwd(), string(opt.cwd, file)),
-      mode: defaultValue(defaultMode, number(opt.mode, file)),
-      overwrite: defaultValue(true, boolean(opt.overwrite, file)),
+      cwd: defaultTo(string(opt.cwd, file), process.cwd()),
+      mode: defaultTo(number(opt.mode, file), defaultMode),
+      overwrite: defaultTo(boolean(opt.overwrite, file), true),
     });
 
     options.flag = (options.overwrite ? 'w' : 'wx');
