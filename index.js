@@ -21,6 +21,10 @@ function prepareWrite(outFolder, opt) {
     opt = {};
   }
 
+  if (!outFolder) {
+    throw new Error('Invalid output folder');
+  }
+
   function normalize(file, enc, cb) {
     var defaultMode = file.stat ? file.stat.mode : null;
 
@@ -39,10 +43,6 @@ function prepareWrite(outFolder, opt) {
       return cb(new Error('Invalid output folder'));
     }
     var basePath = path.resolve(cwd, outFolderPath);
-    if (!basePath) {
-      return cb(new Error('Invalid base option'));
-    }
-
     var writePath = path.resolve(basePath, file.relative);
 
     // Wire up new properties
@@ -58,7 +58,7 @@ function prepareWrite(outFolder, opt) {
     cb(null, file);
   }
 
-  return through.obj(normalize);
+  return through.obj(opt, normalize);
 }
 
 module.exports = {

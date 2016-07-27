@@ -37,7 +37,9 @@
     "istanbul-coveralls": "^1.0.3",
     "jscs": "^2.4.0",
     "jscs-preset-gulp": "^1.0.0",
-    "mocha": "^2.4.5"
+    "mississippi": "^1.2.0",
+    "mocha": "^2.4.5",
+    "vinyl": "^1.1.1"
   },
   "keywords": [
     "gulp",
