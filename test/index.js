@@ -293,4 +293,26 @@ describe('.write()', function() {
       concat(assert),
     ], done);
   });
+
+  it('outputs files where the base ends in a separator', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: null,
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files).toInclude(file);
+      expect(files[0].base.slice(0,-1)).toEqual(outputBase.slice(0,-1), 'base should be the same minus the separator');
+      expect(files[0].base.slice(-1)).toEqual(path.sep, 'base should end in a separator');
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.write(outputBase),
+      concat(assert),
+    ], done);
+  });
+
 });
