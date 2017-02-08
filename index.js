@@ -7,6 +7,7 @@ var assign = require('lodash.assign');
 var through = require('through2');
 var defaultTo = require('lodash.defaultto');
 var valueOrFunction = require('value-or-function');
+var sourcemap = require('vinyl-sourcemap');
 
 var boolean = valueOrFunction.boolean;
 var number = valueOrFunction.number;
@@ -28,7 +29,16 @@ function dest(outFolder, opt) {
       cwd: defaultTo(string(opt.cwd, file), process.cwd()),
       mode: defaultTo(number(opt.mode, file), defaultMode),
       overwrite: defaultTo(boolean(opt.overwrite, file), true),
+      sourcemaps: defaultTo(valueOrFunction(['boolean', 'string', 'object'], opt.sourcemaps), {}),
     });
+
+    if (typeof options.sourcemaps === 'boolean') {
+      options.sourcemaps = {};
+    } else if (typeof options.sourcemaps === 'string') {
+      options.sourcemaps = {
+        path: options.sourcemaps,
+      };
+    }
 
     options.flag = (options.overwrite ? 'w' : 'wx');
 
@@ -51,7 +61,19 @@ function dest(outFolder, opt) {
     file.base = path.normalize(basePath + path.sep);
     file.path = writePath;
 
-    cb(null, file);
+    var push = this.push.bind(this);
+
+    sourcemap.write(file, options.sourcemaps.path, options, onWritten);
+
+    function onWritten(err, files) {
+      if (err) {
+        cb(err);
+        return;
+      }
+
+      files.forEach(push);
+      cb();
+    }
   }
 
   return through.obj(opt, normalize);
