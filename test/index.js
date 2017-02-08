@@ -21,22 +21,22 @@ var outputBase = testConstants.outputBase;
 var inputPath = testConstants.inputPath;
 var outputPath = testConstants.outputPath;
 
-describe('.write()', function() {
+describe('.dest()', function() {
 
   it('exports an object', function(done) {
     expect(typeof prepare).toEqual('object');
     done();
   });
 
-  it('exports a write function', function(done) {
-    expect(typeof prepare.write).toEqual('function');
+  it('exports a dest function', function(done) {
+    expect(typeof prepare.dest).toEqual('function');
     done();
   });
 
   it('throws on invalid folder (empty)', function(done) {
     var stream;
     try {
-      stream = prepare.write();
+      stream = prepare.dest();
     } catch (err) {
       expect(err).toExist();
       expect(stream).toNotExist();
@@ -48,7 +48,7 @@ describe('.write()', function() {
   it('throws on invalid folder (empty string)', function(done) {
     var stream;
     try {
-      stream = prepare.write('');
+      stream = prepare.dest('');
     } catch (err) {
       expect(err).toExist();
       expect(stream).toNotExist();
@@ -72,7 +72,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(function() {
+      prepare.dest(function() {
         return '';
       }),
       concat(),
@@ -94,7 +94,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputRelative, { cwd: __dirname }),
+      prepare.dest(outputRelative, { cwd: __dirname }),
       concat(assert),
     ], done);
   });
@@ -114,7 +114,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase),
+      prepare.dest(outputBase),
       concat(assert),
     ], done);
   });
@@ -138,7 +138,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputRelative, { cwd: cwd }),
+      prepare.dest(outputRelative, { cwd: cwd }),
       concat(assert),
     ], done);
   });
@@ -164,7 +164,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputRelative, { cwd: cwd }),
+      prepare.dest(outputRelative, { cwd: cwd }),
       concat(assert),
     ], done);
   });
@@ -194,7 +194,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputFn, { cwd: cwd }),
+      prepare.dest(outputFn, { cwd: cwd }),
       concat(assert),
     ], done);
   });
@@ -217,7 +217,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase, { cwd: __dirname, mode: expectedMode }),
+      prepare.dest(outputBase, { cwd: __dirname, mode: expectedMode }),
       concat(assert),
     ], done);
   });
@@ -243,7 +243,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase, { cwd: __dirname, mode: expectedModeFn }),
+      prepare.dest(outputBase, { cwd: __dirname, mode: expectedModeFn }),
       concat(assert),
     ], done);
   });
@@ -264,7 +264,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase, { cwd: __dirname, overwrite: true }),
+      prepare.dest(outputBase, { cwd: __dirname, overwrite: true }),
       concat(assert),
     ], done);
   });
@@ -289,7 +289,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase, { cwd: __dirname, mode: overwrite }),
+      prepare.dest(outputBase, { cwd: __dirname, mode: overwrite }),
       concat(assert),
     ], done);
   });
@@ -310,7 +310,7 @@ describe('.write()', function() {
 
     pipe([
       from.obj([file]),
-      prepare.write(outputBase),
+      prepare.dest(outputBase),
       concat(assert),
     ], done);
   });

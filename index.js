@@ -12,7 +12,7 @@ var boolean = valueOrFunction.boolean;
 var number = valueOrFunction.number;
 var string = valueOrFunction.string;
 
-function prepareWrite(outFolder, opt) {
+function dest(outFolder, opt) {
   if (!opt) {
     opt = {};
   }
@@ -58,5 +58,5 @@ function prepareWrite(outFolder, opt) {
 }
 
 module.exports = {
-  write: prepareWrite,
+  dest: dest,
 };
