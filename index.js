@@ -90,8 +90,60 @@ function dest(outFolder, opt) {
   return through.obj(opt, normalize);
 }
 
+function symlink(outFolder, opt) {
+  if (!opt) {
+    opt = {};
+  }
+
+  if (!outFolder) {
+    throw new Error('Invalid output folder');
+  }
+
+  function normalize(file, enc, cb) {
+    var defaultMode = file.stat ? file.stat.mode : null;
+
+    var options = assign({}, opt, {
+      cwd: defaultTo(string(opt.cwd, file), process.cwd()),
+      mode: defaultTo(number(opt.mode, file), defaultMode),
+      overwrite: defaultTo(boolean(opt.overwrite, file), true),
+      relative: defaultTo(boolean(opt.relative, file), false),
+    });
+
+    options.flag = (options.overwrite ? 'w' : 'wx');
+
+    var cwd = path.resolve(options.cwd);
+
+    var outFolderPath = string(outFolder, file);
+    if (!outFolderPath) {
+      return cb(new Error('Invalid output folder'));
+    }
+    var basePath = path.resolve(cwd, outFolderPath);
+    var targetPath = path.resolve(basePath, file.relative);
+
+    var linkPath = file.path;
+    if (options.relative) {
+      linkPath = path.relative(basePath, file.path);
+    }
+
+    // Wire up new properties
+    file.stat = (file.stat || new fs.Stats());
+    file.stat.mode = options.mode;
+    file.flag = options.flag;
+    file.cwd = cwd;
+    // Ensure the base always ends with a separator
+    // TODO: add a test for this
+    file.base = path.normalize(basePath + path.sep);
+    file.path = targetPath;
+    file.symlink = linkPath;
+
+    cb(null, file);
+  }
+
+  return through.obj(opt, normalize);
+}
 
 module.exports = {
   src: src,
   dest: dest,
+  symlink: symlink,
 };
