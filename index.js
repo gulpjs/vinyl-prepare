@@ -13,6 +13,22 @@ var boolean = valueOrFunction.boolean;
 var number = valueOrFunction.number;
 var string = valueOrFunction.string;
 
+function sourcemapCoercer(option) {
+  if (typeof option === 'boolean' && option === true) {
+    return {};
+  }
+
+  if (typeof option === 'string') {
+    return { path: option };
+  }
+
+  if (typeof option === 'object' && !Array.isArray(option)) {
+    return option;
+  }
+
+  return null;
+}
+
 function dest(outFolder, opt) {
   if (!opt) {
     opt = {};
@@ -23,20 +39,38 @@ function dest(outFolder, opt) {
   }
 
   function normalize(file, enc, cb) {
+    var self = this;
+
     var defaultMode = file.stat ? file.stat.mode : null;
 
     var options = assign({}, opt, {
       cwd: defaultTo(string(opt.cwd, file), process.cwd()),
       mode: defaultTo(number(opt.mode, file), defaultMode),
       overwrite: defaultTo(boolean(opt.overwrite, file), true),
-      sourcemaps: defaultTo(valueOrFunction(['boolean', 'string', 'object'], opt.sourcemaps), {}),
+      sourcemaps: defaultTo(valueOrFunction(sourcemapCoercer, opt.sourcemaps), false),
     });
 
-    if (typeof options.sourcemaps === 'boolean') {
-      options.sourcemaps = {};
-    } else if (typeof options.sourcemaps === 'string') {
-      options.sourcemaps = {
-        path: options.sourcemaps,
+    var sourcemapOptions;
+    if (options.sourcemaps) {
+      // TODO: defaults
+      sourcemapOptions = {
+        // TODO: rename?
+        path: string(options.sourcemaps.path, file),
+        includeContent: boolean(options.sourcemaps.includeContent, file),
+        addComment: boolean(options.sourcemaps.addComment, file),
+        // TODO: remove?
+        charset: string(options.sourcemaps.charset, file),
+        sourceRoot: string(options.sourcemaps.sourceRoot, file),
+        // TODO: is there a better name for this option?
+        mapFile: string(options.sourcemaps.mapFile, file),
+        // TODO: rename or remove this option
+        destPath: string(options.sourcemaps.destPath, file),
+        // TODO: maybe rename?
+        sourceMappingURLPrefix: string(options.sourcemaps.sourceMappingURLPrefix, file),
+        // TODO: maybe rename?
+        sourceMappingURL: string(options.sourcemaps.sourceMappingURL, file),
+        // TODO: handle mapSources somehow
+        // TODO: add clone option? gulp-sourcemaps added this at some point
       };
     }
 
@@ -61,17 +95,24 @@ function dest(outFolder, opt) {
     file.base = path.normalize(basePath + path.sep);
     file.path = writePath;
 
-    var push = this.push.bind(this);
+    if (!sourcemapOptions) {
+      return cb(null, file);
+    }
 
-    sourcemap.write(file, options.sourcemaps.path, options, onWritten);
+    // TODO: change this function signature to take (file, options, cb)
+    // The options can contain the output path
+    sourcemap.write(file, sourcemapOptions.path, sourcemapOptions, onWritten);
 
-    function onWritten(err, files) {
+    function onWritten(err, outFile, outSourceMap) {
       if (err) {
-        cb(err);
-        return;
+        return cb(err);
       }
 
-      files.forEach(push);
+      self.push(outFile);
+      if (outSourceMap) {
+        self.push(outSourceMap);
+      }
+
       cb();
     }
   }
