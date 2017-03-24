@@ -315,4 +315,22 @@ describe('.dest()', function() {
     ], done);
   });
 
+  it('sourcemaps option', function(done) {
+    var file = new File({
+      base: inputBase,
+      path: inputPath,
+      contents: null,
+    });
+
+    function assert() {
+      // TODO: assert something
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.dest(outputBase, { sourcemaps: true }),
+      concat(assert),
+    ], done);
+  });
+
 });

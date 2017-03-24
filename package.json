@@ -28,7 +28,8 @@
     "lodash.assign": "^4.1.0",
     "lodash.defaultto": "^4.14.0",
     "through2": "^2.0.1",
-    "value-or-function": "^1.2.1"
+    "value-or-function": "^2.0.0",
+    "vinyl-sourcemap": "^0.3.0"
   },
   "devDependencies": {
     "eslint": "^1.10.3",
