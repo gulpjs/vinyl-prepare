@@ -58,8 +58,6 @@ function dest(outFolder, opt) {
         path: string(options.sourcemaps.path, file),
         includeContent: boolean(options.sourcemaps.includeContent, file),
         addComment: boolean(options.sourcemaps.addComment, file),
-        // TODO: remove?
-        charset: string(options.sourcemaps.charset, file),
         sourceRoot: string(options.sourcemaps.sourceRoot, file),
         // TODO: is there a better name for this option?
         mapFile: string(options.sourcemaps.mapFile, file),
@@ -69,7 +67,6 @@ function dest(outFolder, opt) {
         sourceMappingURLPrefix: string(options.sourcemaps.sourceMappingURLPrefix, file),
         // TODO: maybe rename?
         sourceMappingURL: string(options.sourcemaps.sourceMappingURL, file),
-        // TODO: handle mapSources somehow
         // TODO: add clone option? gulp-sourcemaps added this at some point
       };
     }
@@ -101,7 +98,7 @@ function dest(outFolder, opt) {
 
     // TODO: change this function signature to take (file, options, cb)
     // The options can contain the output path
-    sourcemap.write(file, sourcemapOptions.path, sourcemapOptions, onWritten);
+    sourcemap.write(file, sourcemapOptions, onWritten);
 
     function onWritten(err, outFile, outSourceMap) {
       if (err) {
