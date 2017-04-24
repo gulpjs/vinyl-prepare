@@ -25,8 +25,8 @@
   },
   "dependencies": {
     "graceful-fs": "^4.1.4",
+    "koalas": "^1.0.1",
     "lodash.assign": "^4.1.0",
-    "lodash.defaultto": "^4.14.0",
     "through2": "^2.0.1",
     "value-or-function": "^2.0.0"
   },

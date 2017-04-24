@@ -5,7 +5,7 @@ var path = require('path');
 var assign = require('lodash.assign');
 var fs = require('graceful-fs');
 var through = require('through2');
-var defaultTo = require('lodash.defaultto');
+var koalas = require('koalas');
 var File = require('vinyl');
 var valueOrFunction = require('value-or-function');
 
@@ -58,9 +58,9 @@ function dest(outFolder, opt) {
     var defaultMode = file.stat ? file.stat.mode : null;
 
     var options = assign({}, opt, {
-      cwd: defaultTo(string(opt.cwd, file), process.cwd()),
-      mode: defaultTo(number(opt.mode, file), defaultMode),
-      overwrite: defaultTo(boolean(opt.overwrite, file), true),
+      cwd: koalas(string(opt.cwd, file), process.cwd()),
+      mode: koalas(number(opt.mode, file), defaultMode),
+      overwrite: koalas(boolean(opt.overwrite, file), true),
     });
 
     options.flag = (options.overwrite ? 'w' : 'wx');
