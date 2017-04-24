@@ -2,15 +2,48 @@
 
 var path = require('path');
 
-var fs = require('graceful-fs');
 var assign = require('lodash.assign');
+var fs = require('graceful-fs');
 var through = require('through2');
 var defaultTo = require('lodash.defaultto');
+var File = require('vinyl');
 var valueOrFunction = require('value-or-function');
 
 var boolean = valueOrFunction.boolean;
 var number = valueOrFunction.number;
 var string = valueOrFunction.string;
+var date = valueOrFunction.date;
+
+
+function src(opt) {
+  if (!opt) {
+    opt = {};
+  }
+
+  function normalize(globFile, enc, callback) {
+
+    var file = new File(globFile);
+    if (globFile.originalSymlinkPath) {
+      file.path = globFile.originalSymlinkPath;
+    }
+
+    // Skip this file if since option is set and current file is too old
+    if (opt.since != null) {
+      var since = date(opt.since, file);
+      if (since === null) {
+        throw new Error('expected since option to be a date or timestamp');
+      }
+      if (file.stat.mtime <= since) {
+        return callback();
+      }
+    }
+
+    return callback(null, file);
+  }
+
+  return through.obj(opt, normalize);
+}
+
 
 function dest(outFolder, opt) {
   if (!opt) {
@@ -57,6 +90,8 @@ function dest(outFolder, opt) {
   return through.obj(opt, normalize);
 }
 
+
 module.exports = {
+  src: src,
   dest: dest,
 };
