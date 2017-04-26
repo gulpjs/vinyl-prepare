@@ -79,9 +79,7 @@ function dest(outFolder, opt) {
     file.stat.mode = options.mode;
     file.flag = options.flag;
     file.cwd = cwd;
-    // Ensure the base always ends with a separator
-    // TODO: add a test for this
-    file.base = path.normalize(basePath + path.sep);
+    file.base = basePath;
     file.path = writePath;
 
     cb(null, file);
