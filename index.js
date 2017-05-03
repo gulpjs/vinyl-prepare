@@ -41,7 +41,7 @@ function src(opt) {
     return callback(null, file);
   }
 
-  return through.obj(opt, normalize);
+  return through.obj(normalize);
 }
 
 
@@ -85,7 +85,7 @@ function dest(outFolder, opt) {
     cb(null, file);
   }
 
-  return through.obj(opt, normalize);
+  return through.obj(normalize);
 }
 
 
