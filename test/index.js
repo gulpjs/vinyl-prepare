@@ -20,11 +20,17 @@ var inputBase = testConstants.inputBase;
 var outputBase = testConstants.outputBase;
 var inputPath = testConstants.inputPath;
 var outputPath = testConstants.outputPath;
+var symlinkPath = testConstants.symlinkPath;
 
-describe('.dest()', function() {
+describe('prepare', function() {
 
   it('exports an object', function(done) {
     expect(typeof prepare).toEqual('object');
+    done();
+  });
+
+  it('exports a src function', function(done) {
+    expect(typeof prepare.src).toEqual('function');
     done();
   });
 
@@ -32,6 +38,132 @@ describe('.dest()', function() {
     expect(typeof prepare.dest).toEqual('function');
     done();
   });
+
+});
+
+describe('.src()', function() {
+
+  it('doesn\'t wrap in vinyl if already a vinyl', function(done) {
+    var file = new File({
+      path: inputPath,
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files[0]).toBe(file);
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src(),
+      concat(assert),
+    ], done);
+  });
+
+  it('sets path to originalSymlinkPath, if given', function(done) {
+    var file = new File({
+      path: inputPath,
+      originalSymlinkPath: symlinkPath,
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(1);
+      expect(files[0]).toBe(file);
+      expect(files[0].path).toEqual(symlinkPath);
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src(),
+      concat(assert),
+    ], done);
+  });
+
+  it('errors if since option is invalid (value)', function(done) {
+    var file = new File({
+      path: inputPath,
+    });
+    var since = true;
+
+    function assert(err) {
+      expect(err).toExist();
+      expect(err.message).toEqual('Invalid since option');
+      done();
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src({ since: since }),
+    ], assert);
+  });
+
+  it('errors if since option is invalid (function)', function(done) {
+    var file = new File({
+      path: inputPath,
+    });
+    var since = function() {
+      return true;
+    };
+
+    function assert(err) {
+      expect(err).toExist();
+      expect(err.message).toEqual('Invalid since option');
+      done();
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src({ since: since }),
+    ], assert);
+  });
+
+  it('skips files if older than since given in options', function(done) {
+    var now = Date.now();
+    var file = new File({
+      path: inputPath,
+      stat: {
+        mtime: now - 1001,
+      },
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(0);
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src({ since: now }),
+      concat(assert),
+    ], done);
+  });
+
+  it('skips files if older than since given in options as a function', function(done) {
+    var now = Date.now();
+    var file = new File({
+      path: inputPath,
+      stat: {
+        mtime: now - 1001,
+      },
+    });
+
+    function assert(files) {
+      expect(files.length).toEqual(0);
+    }
+
+    pipe([
+      from.obj([file]),
+      prepare.src({
+        since: function() {
+          return now;
+        },
+      }),
+      concat(assert),
+    ], done);
+  });
+
+});
+
+describe('.dest()', function() {
 
   it('throws on invalid folder (empty)', function(done) {
     var stream;
