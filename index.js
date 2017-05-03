@@ -21,8 +21,8 @@ function src(opt) {
   }
 
   function normalize(globFile, enc, callback) {
+    var file = File.isVinyl(globFile) ? globFile : new File(globFile);
 
-    var file = new File(globFile);
     if (globFile.originalSymlinkPath) {
       file.path = globFile.originalSymlinkPath;
     }
@@ -31,9 +31,9 @@ function src(opt) {
     if (opt.since != null) {
       var since = date(opt.since, file);
       if (since === null) {
-        throw new Error('expected since option to be a date or timestamp');
+        return callback(new Error('Invalid since option'));
       }
-      if (file.stat.mtime <= since) {
+      if (file.stat && file.stat.mtime <= since) {
         return callback();
       }
     }
