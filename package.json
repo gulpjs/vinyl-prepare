@@ -1,6 +1,6 @@
 {
   "name": "vinyl-prepare",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Prepare vinyl files.",
   "author": "Gulp Team <team@gulpjs.com> (http://gulpjs.com/)",
   "contributors": [
