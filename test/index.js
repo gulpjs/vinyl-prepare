@@ -60,25 +60,6 @@ describe('.src()', function() {
     ], done);
   });
 
-  it('sets path to originalSymlinkPath, if given', function(done) {
-    var file = new File({
-      path: inputPath,
-      originalSymlinkPath: symlinkPath,
-    });
-
-    function assert(files) {
-      expect(files.length).toEqual(1);
-      expect(files[0]).toBe(file);
-      expect(files[0].path).toEqual(symlinkPath);
-    }
-
-    pipe([
-      from.obj([file]),
-      prepare.src(),
-      concat(assert),
-    ], done);
-  });
-
   it('errors if since option is invalid (value)', function(done) {
     var file = new File({
       path: inputPath,

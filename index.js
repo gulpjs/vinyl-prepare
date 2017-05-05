@@ -22,10 +22,6 @@ function src(opt) {
   function normalize(globFile, enc, callback) {
     var file = File.isVinyl(globFile) ? globFile : new File(globFile);
 
-    if (globFile.originalSymlinkPath) {
-      file.path = globFile.originalSymlinkPath;
-    }
-
     // Skip this file if since option is set and current file is too old
     if (opt.since != null) {
       var since = date(opt.since, file);
