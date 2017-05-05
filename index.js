@@ -2,7 +2,6 @@
 
 var path = require('path');
 
-var assign = require('lodash.assign');
 var fs = require('graceful-fs');
 var through = require('through2');
 var koalas = require('koalas');
@@ -56,16 +55,9 @@ function dest(outFolder, opt) {
 
   function normalize(file, enc, cb) {
     var defaultMode = file.stat ? file.stat.mode : null;
-
-    var options = assign({}, opt, {
-      cwd: koalas(string(opt.cwd, file), process.cwd()),
-      mode: koalas(number(opt.mode, file), defaultMode),
-      overwrite: koalas(boolean(opt.overwrite, file), true),
-    });
-
-    options.flag = (options.overwrite ? 'w' : 'wx');
-
-    var cwd = path.resolve(options.cwd);
+    var mode = koalas(number(opt.mode, file), defaultMode);
+    var flag = koalas(boolean(opt.overwrite, file), true) ? 'w' : 'wx';
+    var cwd = path.resolve(koalas(string(opt.cwd, file), process.cwd()));
 
     var outFolderPath = string(outFolder, file);
     if (!outFolderPath) {
@@ -76,8 +68,8 @@ function dest(outFolder, opt) {
 
     // Wire up new properties
     file.stat = (file.stat || new fs.Stats());
-    file.stat.mode = options.mode;
-    file.flag = options.flag;
+    file.stat.mode = mode;
+    file.flag = flag;
     file.cwd = cwd;
     file.base = basePath;
     file.path = writePath;
